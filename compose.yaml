@@ -1,26 +1,44 @@
 version: '3'
 
 services:
-###> doctrine/doctrine-bundle ###
+##> doctrine/doctrine-bundle ###
   database:
-    image: postgres:${POSTGRES_VERSION:-16}-alpine
+    image: postgres:${POSTGRES_VERSION:-15}-alpine
+    container_name: systemeiodb
     environment:
-      POSTGRES_DB: ${POSTGRES_DB:-app}
-      # You should definitely change the password in production
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-!ChangeMe!}
-      POSTGRES_USER: ${POSTGRES_USER:-app}
+      POSTGRES_DB: systemeio
+      #You should definitely change the password in production
+      POSTGRES_PASSWORD: postgres@
+      POSTGRES_USER: postgres
+      PGDATA: /var/lib/postgresql/data/main
+      DATABASE_URL: postgresql://postgres:postgres@@systemeiodb:5432/systemeio?serverVersion=15&charset=utf8
     healthcheck:
-      test: ["CMD", "pg_isready", "-d", "${POSTGRES_DB:-app}", "-U", "${POSTGRES_USER:-app}"]
+      test: ["CMD", "pg_isready", "-d", "${POSTGRES_DB}", "-U", "${POSTGRES_USER}"]
       timeout: 5s
       retries: 5
       start_period: 60s
     volumes:
-      - database_data:/var/lib/postgresql/data:rw
-      # You may use a bind-mounted host directory instead, so that it is harder to accidentally remove the volume and lose all your data!
-      # - ./docker/db/data:/var/lib/postgresql/data:rw
-###< doctrine/doctrine-bundle ###
+      #- /var/lib/postgresql/15/main:/var/lib/postgresql/data:rw
+      - ./database:/var/lib/postgresql/data
+      - ./database/main:/var/lib/postgresql/data
+      - /var/run/postgresql:/var/run/postgresql
 
-volumes:
-###> doctrine/doctrine-bundle ###
-  database_data:
-###< doctrine/doctrine-bundle ###
+  php:
+    build:
+      context: ./
+    container_name: systemeioapp
+
+
+    environment:
+      APP_ENV: dev #prod
+      TIMEZONE: Asia/Qyzylorda
+    
+    depends_on:
+      - database
+
+    volumes:
+      - ./:/app
+    ports:
+      - 8000:8000
+    # networks:
+    #   - systemeio-net
